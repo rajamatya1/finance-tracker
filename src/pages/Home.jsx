@@ -82,7 +82,7 @@ const deleteBtn = {
 };
 
 /* ================= APP ================= */
-function Home() {
+function Home({ user, onLogout }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [transactions, setTransactions] = useState([]);
@@ -95,7 +95,7 @@ function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await API.get("/");
+        const res = await API.get("/transactions");
         setTransactions(res.data);
       } catch (err) {
         console.log(err);
@@ -132,13 +132,13 @@ function Home() {
 
     try {
       if (editingId) {
-        const res = await API.put(`/${editingId}`, payload);
+        const res = await API.put(`/transactions/${editingId}`, payload);
         setTransactions((prev) =>
           prev.map((t) => (t._id === editingId ? res.data : t))
         );
         setEditingId(null);
       } else {
-        const res = await API.post("/", payload);
+        const res = await API.post("/transactions", payload);
         setTransactions((prev) => [...prev, res.data]);
       }
 
@@ -152,7 +152,7 @@ function Home() {
   };
 
   const deleteTransaction = async (id) => {
-    await API.delete(`/${id}`);
+    await API.delete(`/transactions/${id}`);
     setTransactions((prev) => prev.filter((t) => t._id !== id));
   };
 
@@ -187,6 +187,13 @@ function Home() {
         }}
       >
         <h2>💰 Finance Tracker</h2>
+        <p style={{ marginBottom: "10px", opacity: 0.75 }}>
+  Signed in as {user.name}
+</p>
+
+<button onClick={onLogout} style={{ marginBottom: "10px" }}>
+  Log out
+</button>
 
         <button onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "☀️ Light" : "🌙 Dark"}
