@@ -89,8 +89,9 @@ function Home() {
   const [category, setCategory] = useState("Food");
   const [type, setType] = useState("expense");
   const [editingId, setEditingId] = useState(null);
-  const [darkMode, setDarkMode] = useState(false);
-
+  const [darkMode, setDarkMode] = useState(() => {
+    return localStorage.getItem("theme") === "dark";
+  });
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -103,8 +104,6 @@ function Home() {
 
     fetchData();
 
-    const theme = localStorage.getItem("theme");
-    if (theme) setDarkMode(theme === "dark");
   }, []);
 
   useEffect(() => {
