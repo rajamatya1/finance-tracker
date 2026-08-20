@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
 
 if (process.env.NODE_ENV !== "production") {
   require("dotenv").config();
@@ -10,14 +11,18 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    credentials: true,
   })
 );
 app.use(express.json());
+app.use(cookieParser());
 
 const transactionRoutes = require("./routes/transactionRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/auth", authRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Finance Tracker API is running..." });
