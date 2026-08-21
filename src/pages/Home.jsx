@@ -40,6 +40,20 @@ const inputStyle = (theme) => ({
   outline: "none",
 });
 
+const filterControls = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "8px",
+  marginTop: "4px",
+};
+
+const filterSelectStyle = (theme) => ({
+  ...inputStyle(theme),
+  flex: "1 1 160px",
+  width: "auto",
+  margin: 0,
+});
+
 const primaryBtn = {
   width: "100%",
   padding: "12px",
@@ -116,6 +130,9 @@ function Home({ user, onLogout }) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
@@ -259,12 +276,42 @@ function Home({ user, onLogout }) {
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
-  const visibleTransactions = transactions.filter((transaction) => {
-    const searchableText =
-      `${transaction.title} ${transaction.category}`.toLowerCase();
+  const categoryOptions = [
+    ...new Set(transactions.map((transaction) => transaction.category)),
+  ].sort();
 
-    return searchableText.includes(normalizedSearchTerm);
-  });
+  const visibleTransactions = transactions
+    .filter((transaction) => {
+      const searchableText =
+        `${transaction.title} ${transaction.category}`.toLowerCase();
+
+      return searchableText.includes(normalizedSearchTerm);
+    })
+    .filter((transaction) => {
+      return typeFilter === "all" || transaction.type === typeFilter;
+    })
+    .filter((transaction) => {
+      return categoryFilter === "all" || transaction.category === categoryFilter;
+    })
+    .sort((firstTransaction, secondTransaction) => {
+      if (sortOrder === "oldest") {
+        return new Date(firstTransaction.date) - new Date(secondTransaction.date);
+      }
+
+      if (sortOrder === "largest") {
+        return (
+          Math.abs(secondTransaction.amount) - Math.abs(firstTransaction.amount)
+        );
+      }
+
+      if (sortOrder === "smallest") {
+        return (
+          Math.abs(firstTransaction.amount) - Math.abs(secondTransaction.amount)
+        );
+      }
+
+      return new Date(secondTransaction.date) - new Date(firstTransaction.date);
+    });
 
   return (
     <div style={{ background: theme.bg, minHeight: "100vh", padding: "30px" }}>
@@ -334,11 +381,50 @@ function Home({ user, onLogout }) {
           onChange={(event) => setSearchTerm(event.target.value)}
         />
 
+        <div style={filterControls}>
+          <select
+            style={filterSelectStyle(theme)}
+            aria-label="Filter by transaction type"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+          >
+            <option value="all">All types</option>
+            <option value="income">Income</option>
+            <option value="expense">Expense</option>
+          </select>
+
+          <select
+            style={filterSelectStyle(theme)}
+            aria-label="Filter by transaction category"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="all">All categories</option>
+            {categoryOptions.map((transactionCategory) => (
+              <option key={transactionCategory} value={transactionCategory}>
+                {transactionCategory}
+              </option>
+            ))}
+          </select>
+
+          <select
+            style={filterSelectStyle(theme)}
+            aria-label="Sort transactions"
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value)}
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="largest">Largest amount</option>
+            <option value="smallest">Smallest amount</option>
+          </select>
+        </div>
+
         {!isLoading && visibleTransactions.length === 0 && (
           <p style={{ marginTop: "20px" }}>
             {transactions.length === 0
               ? "No transactions yet."
-              : "No transactions match your search."}
+              : "No transactions match your search or filters."}
           </p>
         )}
 
