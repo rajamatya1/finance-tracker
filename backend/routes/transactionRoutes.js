@@ -119,7 +119,7 @@ router.put("/:id", async (req, res) => {
       },
       validation.value,
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       }
     );

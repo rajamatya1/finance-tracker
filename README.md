@@ -149,7 +149,7 @@ npm run lint
 npm run build
 ```
 
-The initial automated suite contains six tests covering currency/date formatting and transaction-form behavior.
+The automated suite contains ten tests covering currency/date formatting, transaction-form behavior, registration security, protected routes, transaction ownership, and validation.
 
 To check backend production dependencies:
 
