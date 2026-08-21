@@ -3,6 +3,23 @@ import { useEffect, useState } from "react";
 import SummaryCards from "../components/SummaryCards";
 import TransactionForm from "../components/TransactionForm";
 
+function getTodayDate() {
+  const today = new Date();
+  const timezoneOffset = today.getTimezoneOffset() * 60 * 1000;
+
+  return new Date(today.getTime() - timezoneOffset)
+    .toISOString()
+    .slice(0, 10);
+}
+
+function formatTransactionDate(date) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(date));
+}
+
 const cardStyle = (theme) => ({
   flex: 1,
   padding: "14px",
@@ -91,6 +108,7 @@ const deleteBtn = {
 function Home({ user, onLogout }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
+  const [date, setDate] = useState(getTodayDate);
   const [transactions, setTransactions] = useState([]);
   const [category, setCategory] = useState("Food");
   const [type, setType] = useState("expense");
@@ -142,6 +160,11 @@ function Home({ user, onLogout }) {
       return;
     }
 
+    if (!date) {
+      setErrorMessage("Please choose a transaction date.");
+      return;
+    }
+
     if (!normalizedCategory) {
       setErrorMessage("Please select a category.");
       return;
@@ -155,6 +178,7 @@ function Home({ user, onLogout }) {
         type === "expense"
           ? -Math.abs(numericAmount)
           : Math.abs(numericAmount),
+      date,
       category: normalizedCategory,
       type,
     };
@@ -184,6 +208,7 @@ function Home({ user, onLogout }) {
 
       setTitle("");
       setAmount("");
+      setDate(getTodayDate());
       setCategory("Food");
       setType("expense");
     } catch (error) {
@@ -216,6 +241,7 @@ function Home({ user, onLogout }) {
     setEditingId(transaction._id);
     setTitle(transaction.title);
     setAmount(Math.abs(transaction.amount));
+    setDate(transaction.date.slice(0, 10));
     setCategory(transaction.category);
     setType(transaction.type);
   };
@@ -271,6 +297,8 @@ function Home({ user, onLogout }) {
           setTitle={setTitle}
           amount={amount}
           setAmount={setAmount}
+          date={date}
+          setDate={setDate}
           category={category}
           setCategory={setCategory}
           type={type}
@@ -300,7 +328,7 @@ function Home({ user, onLogout }) {
                 <div>
                   <b>{transaction.title}</b>
                   <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                    {transaction.category} • ${Math.abs(transaction.amount)}
+                    {transaction.category} • {formatTransactionDate(transaction.date)} • ${Math.abs(transaction.amount)}
                   </div>
                 </div>
 

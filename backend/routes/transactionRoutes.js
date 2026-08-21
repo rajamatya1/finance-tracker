@@ -4,7 +4,7 @@ const requireAuth = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-function validateAndFormatTransaction({ title, amount, category, type }) {
+function validateAndFormatTransaction({ title, amount, category, type, date }) {
   const normalizedTitle = typeof title === "string" ? title.trim() : "";
   const normalizedCategory = typeof category === "string" ? category.trim() : "";
   const normalizedType = typeof type === "string" ? type : "";
@@ -34,17 +34,37 @@ function validateAndFormatTransaction({ title, amount, category, type }) {
     return { error: "Type must be either income or expense." };
   }
 
-  return {
-    value: {
-      title: normalizedTitle,
-      amount:
-        normalizedType === "expense"
-          ? -Math.abs(numericAmount)
-          : Math.abs(numericAmount),
-      category: normalizedCategory,
-      type: normalizedType,
-    },
+  const value = {
+    title: normalizedTitle,
+    amount:
+      normalizedType === "expense"
+        ? -Math.abs(numericAmount)
+        : Math.abs(numericAmount),
+    category: normalizedCategory,
+    type: normalizedType,
   };
+
+  if (date !== undefined) {
+    if (
+      typeof date !== "string" ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(date)
+    ) {
+      return { error: "Please choose a valid transaction date." };
+    }
+
+    const transactionDate = new Date(`${date}T12:00:00.000Z`);
+
+    if (
+      Number.isNaN(transactionDate.getTime()) ||
+      transactionDate.toISOString().slice(0, 10) !== date
+    ) {
+      return { error: "Please choose a valid transaction date." };
+    }
+
+    value.date = transactionDate;
+  }
+
+  return { value };
 }
 
 router.use(requireAuth);
