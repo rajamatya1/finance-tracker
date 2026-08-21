@@ -267,6 +267,18 @@ function Home({ user, onLogout }) {
       return;
     }
 
+    const transaction = transactions.find(
+      (currentTransaction) => currentTransaction._id === id
+    );
+    const transactionTitle = transaction?.title || "this transaction";
+    const shouldDelete = window.confirm(
+      `Delete "${transactionTitle}"? This cannot be undone.`
+    );
+
+    if (!shouldDelete) {
+      return;
+    }
+
     setErrorMessage("");
     setDeletingId(id);
 
