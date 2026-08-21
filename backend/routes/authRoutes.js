@@ -1,6 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { rateLimit } = require("express-rate-limit");
 const User = require("../models/User");
 const requireAuth = require("../middleware/authMiddleware");
 
@@ -8,6 +9,17 @@ const router = express.Router();
 
 const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const authAttemptLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: {
+    message: "Too many login or registration attempts. Please try again later.",
+  },
+});
 
 const cookieOptions = {
   httpOnly: true,
@@ -34,7 +46,7 @@ const sendAuthResponse = (res, statusCode, user) => {
   });
 };
 
-router.post("/register", async (req, res) => {
+router.post("/register", authAttemptLimiter, async (req, res) => {
   try {
     const name = req.body.name?.trim();
     const email = req.body.email?.trim().toLowerCase();
@@ -82,7 +94,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authAttemptLimiter, async (req, res) => {
   try {
     const email = req.body.email?.trim().toLowerCase();
     const { password } = req.body;
