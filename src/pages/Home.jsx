@@ -145,6 +145,8 @@ function Home({ user, onLogout }) {
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -180,6 +182,10 @@ function Home({ user, onLogout }) {
   };
 
   const addTransaction = async () => {
+    if (isSaving) {
+      return;
+    }
+
     const normalizedTitle = title.trim();
     const normalizedCategory = category.trim();
     const numericAmount = Number(amount);
@@ -205,6 +211,7 @@ function Home({ user, onLogout }) {
     }
 
     setErrorMessage("");
+    setIsSaving(true);
 
     const payload = {
       title: normalizedTitle,
@@ -250,11 +257,18 @@ function Home({ user, onLogout }) {
         error.response?.data?.message ||
           "Unable to save this transaction. Please try again."
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const deleteTransaction = async (id) => {
+    if (deletingId) {
+      return;
+    }
+
     setErrorMessage("");
+    setDeletingId(id);
 
     try {
       await API.delete(`/transactions/${id}`);
@@ -267,6 +281,8 @@ function Home({ user, onLogout }) {
         error.response?.data?.message ||
           "Unable to delete this transaction. Please try again."
       );
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -417,6 +433,7 @@ function Home({ user, onLogout }) {
           addTransaction={addTransaction}
           editingId={editingId}
           setEditingId={setEditingId}
+          isSaving={isSaving}
           primaryBtn={primaryBtn}
           cancelBtn={cancelBtn}
         />
@@ -500,17 +517,33 @@ function Home({ user, onLogout }) {
 
                 <div style={transactionActions}>
                   <button
-                    style={editBtn}
+                    style={{
+                      ...editBtn,
+                      cursor:
+                        isSaving || deletingId !== null
+                          ? "not-allowed"
+                          : "pointer",
+                      opacity: isSaving || deletingId !== null ? 0.7 : 1,
+                    }}
+                    disabled={isSaving || deletingId !== null}
                     onClick={() => editTransaction(transaction)}
                   >
                     Edit
                   </button>
 
                   <button
-                    style={deleteBtn}
+                    style={{
+                      ...deleteBtn,
+                      cursor:
+                        isSaving || deletingId !== null
+                          ? "not-allowed"
+                          : "pointer",
+                      opacity: isSaving || deletingId !== null ? 0.7 : 1,
+                    }}
+                    disabled={isSaving || deletingId !== null}
                     onClick={() => deleteTransaction(transaction._id)}
                   >
-                    Delete
+                    {deletingId === transaction._id ? "Deleting..." : "Delete"}
                   </button>
                 </div>
               </div>
