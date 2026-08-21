@@ -1,7 +1,9 @@
 import API from "../services/api";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import SummaryCards from "../components/SummaryCards";
 import TransactionForm from "../components/TransactionForm";
+
+const MonthlyChart = lazy(() => import("../components/MonthlyChart"));
 
 function getTodayDate() {
   const today = new Date();
@@ -18,6 +20,13 @@ function formatTransactionDate(date) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(date));
+}
+
+function formatMonthLabel(monthKey) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+  }).format(new Date(`${monthKey}-01T12:00:00.000Z`));
 }
 
 const cardStyle = (theme) => ({
@@ -274,6 +283,31 @@ function Home({ user, onLogout }) {
 
   const balance = income + expense;
 
+  const monthlySummary = Object.values(
+    transactions.reduce((summaries, transaction) => {
+      const monthKey = transaction.date.slice(0, 7);
+
+      if (!summaries[monthKey]) {
+        summaries[monthKey] = {
+          month: formatMonthLabel(monthKey),
+          sortKey: monthKey,
+          income: 0,
+          expense: 0,
+        };
+      }
+
+      if (transaction.type === "income") {
+        summaries[monthKey].income += transaction.amount;
+      } else {
+        summaries[monthKey].expense += Math.abs(transaction.amount);
+      }
+
+      return summaries;
+    }, {})
+  ).sort((firstMonth, secondMonth) => {
+    return firstMonth.sortKey.localeCompare(secondMonth.sortKey);
+  });
+
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
   const categoryOptions = [
@@ -346,6 +380,12 @@ function Home({ user, onLogout }) {
           expense={expense}
           cardStyle={cardStyle}
         />
+
+        {monthlySummary.length > 0 && (
+          <Suspense fallback={<p>Loading monthly chart...</p>}>
+            <MonthlyChart data={monthlySummary} theme={theme} />
+          </Suspense>
+        )}
 
         <TransactionForm
           theme={theme}
