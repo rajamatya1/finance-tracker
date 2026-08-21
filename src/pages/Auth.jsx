@@ -51,7 +51,7 @@ function Auth({ onAuthenticated }) {
         </div>
 
         <h1 id="auth-title" className="auth-title">
-          {isRegistering ? "Create your account" : "Welcome back"}
+          {isRegistering ? "Create your account" : "Welcome to Finance Tracker"}
         </h1>
         <p className="auth-copy">
           {isRegistering
