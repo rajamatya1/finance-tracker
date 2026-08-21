@@ -115,6 +115,7 @@ function Home({ user, onLogout }) {
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
@@ -256,6 +257,15 @@ function Home({ user, onLogout }) {
 
   const balance = income + expense;
 
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+  const visibleTransactions = transactions.filter((transaction) => {
+    const searchableText =
+      `${transaction.title} ${transaction.category}`.toLowerCase();
+
+    return searchableText.includes(normalizedSearchTerm);
+  });
+
   return (
     <div style={{ background: theme.bg, minHeight: "100vh", padding: "30px" }}>
       <div
@@ -316,11 +326,27 @@ function Home({ user, onLogout }) {
           </p>
         )}
 
+        <input
+          style={inputStyle(theme)}
+          placeholder="Search by title or category"
+          aria-label="Search transactions"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
+
+        {!isLoading && visibleTransactions.length === 0 && (
+          <p style={{ marginTop: "20px" }}>
+            {transactions.length === 0
+              ? "No transactions yet."
+              : "No transactions match your search."}
+          </p>
+        )}
+
         <div style={{ marginTop: "20px" }}>
           {isLoading ? (
             <p>Loading your transactions...</p>
           ) : (
-            transactions.map((transaction) => (
+            visibleTransactions.map((transaction) => (
               <div
                 key={transaction._id}
                 style={transactionCard(theme, transaction.type)}
