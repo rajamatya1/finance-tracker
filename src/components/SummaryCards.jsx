@@ -1,33 +1,28 @@
-function SummaryCards({ theme, balance, income, expense, cardStyle }) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "10px",
-          marginTop: "15px",
-        }}
-      >
-        <div style={cardStyle(theme)}>
-          <h4>Balance</h4>
-          <h3>${balance.toFixed(2)}</h3>
-        </div>
+import { formatCurrency } from "../utils/formatters";
 
-        <div style={cardStyle(theme)}>
-          <h4>Income</h4>
-          <h3 style={{ color: "#22c55e" }}>
-            ${income.toFixed(2)}
-          </h3>
-        </div>
+function SummaryCards({ balance, income, expense }) {
+  return (
+    <section className="summary-grid" aria-label="Financial summary">
+      <article className="summary-card">
+        <p className="summary-label">Current balance</p>
+        <p className="summary-amount">{formatCurrency(balance)}</p>
+      </article>
 
-        <div style={cardStyle(theme)}>
-          <h4>Expense</h4>
-          <h3 style={{ color: "#ef4444" }}>
-            ${Math.abs(expense).toFixed(2)}
-          </h3>
-        </div>
-      </div>
-    );
-  }
+      <article className="summary-card">
+        <p className="summary-label">Total income</p>
+        <p className="summary-amount summary-amount--income">
+          {formatCurrency(income)}
+        </p>
+      </article>
 
-  export default SummaryCards;
+      <article className="summary-card">
+        <p className="summary-label">Total expenses</p>
+        <p className="summary-amount summary-amount--expense">
+          {formatCurrency(Math.abs(expense))}
+        </p>
+      </article>
+    </section>
+  );
+}
+
+export default SummaryCards;

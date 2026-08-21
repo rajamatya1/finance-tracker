@@ -1,139 +1,16 @@
-import API from "../services/api";
 import { lazy, Suspense, useEffect, useState } from "react";
+import API from "../services/api";
 import SummaryCards from "../components/SummaryCards";
 import TransactionForm from "../components/TransactionForm";
+import {
+  formatCurrency,
+  formatMonthLabel,
+  formatTransactionDate,
+  getTodayDate,
+} from "../utils/formatters";
+import "../styles/dashboard.css";
 
 const MonthlyChart = lazy(() => import("../components/MonthlyChart"));
-
-function getTodayDate() {
-  const today = new Date();
-  const timezoneOffset = today.getTimezoneOffset() * 60 * 1000;
-
-  return new Date(today.getTime() - timezoneOffset)
-    .toISOString()
-    .slice(0, 10);
-}
-
-function formatTransactionDate(date) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(date));
-}
-
-function formatMonthLabel(monthKey) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${monthKey}-01T12:00:00.000Z`));
-}
-
-const cardStyle = (theme) => ({
-  flex: "1 1 160px",
-  padding: "14px",
-  borderRadius: "14px",
-  background: theme.card,
-  textAlign: "center",
-  boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-});
-
-const inputStyle = (theme) => ({
-  width: "100%",
-  padding: "12px",
-  margin: "8px 0",
-  borderRadius: "10px",
-  border: "1px solid #ddd",
-  background: theme.inputBg,
-  color: theme.text,
-  outline: "none",
-});
-
-const filterControls = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "8px",
-  marginTop: "4px",
-};
-
-const filterSelectStyle = (theme) => ({
-  ...inputStyle(theme),
-  flex: "1 1 160px",
-  width: "auto",
-  margin: 0,
-});
-
-const primaryBtn = {
-  width: "100%",
-  padding: "12px",
-  marginTop: "10px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#2563eb",
-  color: "white",
-  cursor: "pointer",
-  fontWeight: "600",
-};
-
-const cancelBtn = {
-  width: "100%",
-  padding: "10px",
-  marginTop: "6px",
-  borderRadius: "10px",
-  border: "none",
-  background: "#6b7280",
-  color: "white",
-  cursor: "pointer",
-};
-
-const transactionCard = (theme, type) => ({
-  display: "flex",
-  justifyContent: "space-between",
-  padding: "12px",
-  marginTop: "10px",
-  borderRadius: "12px",
-  background:
-    type === "income"
-      ? "rgba(34,197,94,0.08)"
-      : "rgba(239,68,68,0.08)",
-  border: "1px solid rgba(0,0,0,0.05)",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "12px",
-});
-
-const errorBox = (darkMode) => ({
-  marginTop: "16px",
-  padding: "12px",
-  borderRadius: "10px",
-  background: "rgba(239,68,68,0.15)",
-  border: "1px solid rgba(239,68,68,0.45)",
-  color: darkMode ? "#fecaca" : "#b91c1c",
-});
-
-const editBtn = {
-  padding: "6px 10px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#3b82f6",
-  color: "white",
-  cursor: "pointer",
-};
-
-const transactionActions = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: "6px",
-};
-
-const deleteBtn = {
-  padding: "6px 10px",
-  border: "none",
-  borderRadius: "8px",
-  background: "#ef4444",
-  color: "white",
-  cursor: "pointer",
-};
 
 function Home({ user, onLogout }) {
   const [title, setTitle] = useState("");
@@ -174,11 +51,13 @@ function Home({ user, onLogout }) {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  const theme = {
-    bg: darkMode ? "#0f172a" : "#f4f6f8",
-    card: darkMode ? "#1e293b" : "#ffffff",
-    text: darkMode ? "#ffffff" : "#111",
-    inputBg: darkMode ? "#334155" : "#ffffff",
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setAmount("");
+    setDate(getTodayDate());
+    setCategory("Food");
+    setType("expense");
   };
 
   const addTransaction = async () => {
@@ -215,10 +94,7 @@ function Home({ user, onLogout }) {
 
     const payload = {
       title: normalizedTitle,
-      amount:
-        type === "expense"
-          ? -Math.abs(numericAmount)
-          : Math.abs(numericAmount),
+      amount: type === "expense" ? -Math.abs(numericAmount) : Math.abs(numericAmount),
       date,
       category: normalizedCategory,
       type,
@@ -226,18 +102,13 @@ function Home({ user, onLogout }) {
 
     try {
       if (editingId) {
-        const response = await API.put(
-          `/transactions/${editingId}`,
-          payload
-        );
+        const response = await API.put(`/transactions/${editingId}`, payload);
 
         setTransactions((previousTransactions) =>
           previousTransactions.map((transaction) =>
             transaction._id === editingId ? response.data : transaction
           )
         );
-
-        setEditingId(null);
       } else {
         const response = await API.post("/transactions", payload);
 
@@ -247,11 +118,7 @@ function Home({ user, onLogout }) {
         ]);
       }
 
-      setTitle("");
-      setAmount("");
-      setDate(getTodayDate());
-      setCategory("Food");
-      setType("expense");
+      resetForm();
     } catch (error) {
       setErrorMessage(
         error.response?.data?.message ||
@@ -284,7 +151,6 @@ function Home({ user, onLogout }) {
 
     try {
       await API.delete(`/transactions/${id}`);
-
       setTransactions((previousTransactions) =>
         previousTransactions.filter((transaction) => transaction._id !== id)
       );
@@ -306,6 +172,12 @@ function Home({ user, onLogout }) {
     setDate(transaction.date.slice(0, 10));
     setCategory(transaction.category);
     setType(transaction.type);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditing = () => {
+    setErrorMessage("");
+    resetForm();
   };
 
   const income = transactions
@@ -344,16 +216,13 @@ function Home({ user, onLogout }) {
   });
 
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-
   const categoryOptions = [
     ...new Set(transactions.map((transaction) => transaction.category)),
   ].sort();
 
   const visibleTransactions = transactions
     .filter((transaction) => {
-      const searchableText =
-        `${transaction.title} ${transaction.category}`.toLowerCase();
-
+      const searchableText = `${transaction.title} ${transaction.category}`.toLowerCase();
       return searchableText.includes(normalizedSearchTerm);
     })
     .filter((transaction) => {
@@ -368,202 +237,229 @@ function Home({ user, onLogout }) {
       }
 
       if (sortOrder === "largest") {
-        return (
-          Math.abs(secondTransaction.amount) - Math.abs(firstTransaction.amount)
-        );
+        return Math.abs(secondTransaction.amount) - Math.abs(firstTransaction.amount);
       }
 
       if (sortOrder === "smallest") {
-        return (
-          Math.abs(firstTransaction.amount) - Math.abs(secondTransaction.amount)
-        );
+        return Math.abs(firstTransaction.amount) - Math.abs(secondTransaction.amount);
       }
 
       return new Date(secondTransaction.date) - new Date(firstTransaction.date);
     });
 
+  const transactionActionsDisabled = isSaving || deletingId !== null;
+
   return (
-    <div
-      style={{
-        background: theme.bg,
-        minHeight: "100vh",
-        padding: "clamp(12px, 4vw, 30px)",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "600px",
-          margin: "auto",
-          background: theme.card,
-          padding: "clamp(16px, 4vw, 24px)",
-          borderRadius: "16px",
-          color: theme.text,
-          boxSizing: "border-box",
-        }}
-      >
-        <h2>💰 Finance Tracker</h2>
+    <main className={`home-page${darkMode ? " home-page--dark" : ""}`}>
+      <div className="dashboard-shell">
+        <header className="dashboard-header">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden="true">
+              $
+            </span>
+            <div>
+              <h1 className="brand-title">Finance Tracker</h1>
+              <p className="signed-in-copy">Signed in as {user.name}</p>
+            </div>
+          </div>
 
-        <p style={{ marginBottom: "10px", opacity: 0.75 }}>
-          Signed in as {user.name}
-        </p>
+          <div className="header-actions">
+            <button className="button button--secondary" type="button" onClick={onLogout}>
+              Log out
+            </button>
+            <button
+              className="button button--secondary"
+              type="button"
+              onClick={() => setDarkMode((isDark) => !isDark)}
+            >
+              {darkMode ? "Use light mode" : "Use dark mode"}
+            </button>
+          </div>
+        </header>
 
-        <button onClick={onLogout} style={{ marginBottom: "10px" }}>
-          Log out
-        </button>
-
-        <button onClick={() => setDarkMode(!darkMode)}>
-          {darkMode ? "☀️ Light" : "🌙 Dark"}
-        </button>
-
-        <SummaryCards
-          theme={theme}
-          balance={balance}
-          income={income}
-          expense={expense}
-          cardStyle={cardStyle}
-        />
+        <SummaryCards balance={balance} income={income} expense={expense} />
 
         {monthlySummary.length > 0 && (
-          <Suspense fallback={<p>Loading monthly chart...</p>}>
-            <MonthlyChart data={monthlySummary} theme={theme} />
+          <Suspense
+            fallback={
+              <section className="dashboard-panel loading-state">
+                Loading monthly chart...
+              </section>
+            }
+          >
+            <MonthlyChart data={monthlySummary} isDark={darkMode} />
           </Suspense>
         )}
 
-        <TransactionForm
-          theme={theme}
-          inputStyle={inputStyle}
-          title={title}
-          setTitle={setTitle}
-          amount={amount}
-          setAmount={setAmount}
-          date={date}
-          setDate={setDate}
-          category={category}
-          setCategory={setCategory}
-          type={type}
-          setType={setType}
-          addTransaction={addTransaction}
-          editingId={editingId}
-          setEditingId={setEditingId}
-          isSaving={isSaving}
-          primaryBtn={primaryBtn}
-          cancelBtn={cancelBtn}
-        />
+        <section className="dashboard-panel" aria-labelledby="transaction-form-title">
+          <div className="panel-heading">
+            <div>
+              <h2 id="transaction-form-title" className="panel-title">
+                {editingId ? "Edit transaction" : "Add a transaction"}
+              </h2>
+              <p className="panel-description">
+                {editingId
+                  ? "Update the details below, then save your changes."
+                  : "Record an income or expense to keep your totals current."}
+              </p>
+            </div>
+          </div>
 
-        {errorMessage && (
-          <p role="alert" style={errorBox(darkMode)}>
-            {errorMessage}
-          </p>
-        )}
+          <TransactionForm
+            title={title}
+            setTitle={setTitle}
+            amount={amount}
+            setAmount={setAmount}
+            date={date}
+            setDate={setDate}
+            category={category}
+            setCategory={setCategory}
+            type={type}
+            setType={setType}
+            addTransaction={addTransaction}
+            editingId={editingId}
+            onCancelEditing={cancelEditing}
+            isSaving={isSaving}
+          />
 
-        <input
-          style={inputStyle(theme)}
-          placeholder="Search by title or category"
-          aria-label="Search transactions"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-        />
-
-        <div style={filterControls}>
-          <select
-            style={filterSelectStyle(theme)}
-            aria-label="Filter by transaction type"
-            value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
-          >
-            <option value="all">All types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-          </select>
-
-          <select
-            style={filterSelectStyle(theme)}
-            aria-label="Filter by transaction category"
-            value={categoryFilter}
-            onChange={(event) => setCategoryFilter(event.target.value)}
-          >
-            <option value="all">All categories</option>
-            {categoryOptions.map((transactionCategory) => (
-              <option key={transactionCategory} value={transactionCategory}>
-                {transactionCategory}
-              </option>
-            ))}
-          </select>
-
-          <select
-            style={filterSelectStyle(theme)}
-            aria-label="Sort transactions"
-            value={sortOrder}
-            onChange={(event) => setSortOrder(event.target.value)}
-          >
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="largest">Largest amount</option>
-            <option value="smallest">Smallest amount</option>
-          </select>
-        </div>
-
-        {!isLoading && visibleTransactions.length === 0 && (
-          <p style={{ marginTop: "20px" }}>
-            {transactions.length === 0
-              ? "No transactions yet."
-              : "No transactions match your search or filters."}
-          </p>
-        )}
-
-        <div style={{ marginTop: "20px" }}>
-          {isLoading ? (
-            <p>Loading your transactions...</p>
-          ) : (
-            visibleTransactions.map((transaction) => (
-              <div
-                key={transaction._id}
-                style={transactionCard(theme, transaction.type)}
-              >
-                <div>
-                  <b>{transaction.title}</b>
-                  <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                    {transaction.category} • {formatTransactionDate(transaction.date)} • ${Math.abs(transaction.amount)}
-                  </div>
-                </div>
-
-                <div style={transactionActions}>
-                  <button
-                    style={{
-                      ...editBtn,
-                      cursor:
-                        isSaving || deletingId !== null
-                          ? "not-allowed"
-                          : "pointer",
-                      opacity: isSaving || deletingId !== null ? 0.7 : 1,
-                    }}
-                    disabled={isSaving || deletingId !== null}
-                    onClick={() => editTransaction(transaction)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    style={{
-                      ...deleteBtn,
-                      cursor:
-                        isSaving || deletingId !== null
-                          ? "not-allowed"
-                          : "pointer",
-                      opacity: isSaving || deletingId !== null ? 0.7 : 1,
-                    }}
-                    disabled={isSaving || deletingId !== null}
-                    onClick={() => deleteTransaction(transaction._id)}
-                  >
-                    {deletingId === transaction._id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </div>
-            ))
+          {errorMessage && (
+            <p className="alert" role="alert">
+              {errorMessage}
+            </p>
           )}
-        </div>
+        </section>
+
+        <section className="dashboard-panel history-panel" aria-labelledby="history-title">
+          <div className="history-heading">
+            <div>
+              <h2 id="history-title" className="panel-title">
+                Transaction history
+              </h2>
+              <p className="panel-description">
+                Search, filter, and sort your saved transactions.
+              </p>
+            </div>
+            {!isLoading && (
+              <p className="history-count">
+                {visibleTransactions.length} of {transactions.length} shown
+              </p>
+            )}
+          </div>
+
+          <div className="history-controls">
+            <input
+              className="search-field"
+              placeholder="Search by description or category"
+              aria-label="Search transactions"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+
+          <div className="filter-grid">
+            <select
+              className="filter-field"
+              aria-label="Filter by transaction type"
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+            >
+              <option value="all">All transaction types</option>
+              <option value="income">Income only</option>
+              <option value="expense">Expenses only</option>
+            </select>
+
+            <select
+              className="filter-field"
+              aria-label="Filter by transaction category"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+            >
+              <option value="all">All categories</option>
+              {categoryOptions.map((transactionCategory) => (
+                <option key={transactionCategory} value={transactionCategory}>
+                  {transactionCategory}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="filter-field"
+              aria-label="Sort transactions"
+              value={sortOrder}
+              onChange={(event) => setSortOrder(event.target.value)}
+            >
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="largest">Largest amount</option>
+              <option value="smallest">Smallest amount</option>
+            </select>
+          </div>
+
+          {isLoading ? (
+            <p className="loading-state">Loading your transactions...</p>
+          ) : visibleTransactions.length === 0 ? (
+            <p className="empty-state">
+              {transactions.length === 0
+                ? "No transactions yet. Add your first one above."
+                : "No transactions match those filters."}
+            </p>
+          ) : (
+            <div className="transaction-list">
+              {visibleTransactions.map((transaction) => {
+                const isIncome = transaction.type === "income";
+
+                return (
+                  <article
+                    key={transaction._id}
+                    className={`transaction-item transaction-item--${transaction.type}`}
+                  >
+                    <div className="transaction-main">
+                      <span className="transaction-icon" aria-hidden="true">
+                        {isIncome ? "↑" : "↓"}
+                      </span>
+                      <div className="transaction-details">
+                        <strong className="transaction-title">{transaction.title}</strong>
+                        <p className="transaction-meta">
+                          <span className="category-chip">{transaction.category}</span>
+                          <span>{formatTransactionDate(transaction.date)}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="transaction-side">
+                      <p
+                        className={`transaction-amount transaction-amount--${transaction.type}`}
+                      >
+                        {isIncome ? "+" : "-"}
+                        {formatCurrency(Math.abs(transaction.amount))}
+                      </p>
+                      <div className="transaction-actions">
+                        <button
+                          className="button button--secondary button--small"
+                          disabled={transactionActionsDisabled}
+                          type="button"
+                          onClick={() => editTransaction(transaction)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="button button--danger button--small"
+                          disabled={transactionActionsDisabled}
+                          type="button"
+                          onClick={() => deleteTransaction(transaction._id)}
+                        >
+                          {deletingId === transaction._id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
-    </div>
+    </main>
   );
 }
 

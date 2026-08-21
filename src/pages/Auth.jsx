@@ -1,5 +1,6 @@
 import { useState } from "react";
 import API from "../services/api";
+import "../styles/auth.css";
 
 function Auth({ onAuthenticated }) {
   const [mode, setMode] = useState("login");
@@ -40,103 +41,77 @@ function Auth({ onAuthenticated }) {
   };
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        placeItems: "center",
-        padding: "24px",
-        background: "var(--code-bg)",
-      }}
-    >
-      <section
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          padding: "32px",
-          borderRadius: "16px",
-          background:  "var(--bg)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.08)",
-        }}
-      >
-        <h1 style={{ marginTop: 0, fontSize: "28px" }}>
+    <main className="auth-page">
+      <section className="auth-card" aria-labelledby="auth-title">
+        <div className="auth-brand">
+          <span className="auth-brand-mark" aria-hidden="true">
+            $
+          </span>
+          Finance Tracker
+        </div>
+
+        <h1 id="auth-title" className="auth-title">
           {isRegistering ? "Create your account" : "Welcome back"}
         </h1>
-
-        <p style={{ marginBottom: "24px", color: "var(--text)", }}>
+        <p className="auth-copy">
           {isRegistering
             ? "Start tracking your finances securely."
-            : "Log in to view your finance dashboard."}
+            : "Log in to view your personal finance dashboard."}
         </p>
 
         {errorMessage && (
-          <p
-            role="alert"
-            style={{
-              padding: "12px",
-              borderRadius: "8px",
-              color: "#b91c1c",
-              background: "#fef2f2",
-            }}
-          >
+          <p className="auth-alert" id="auth-error" role="alert">
             {errorMessage}
           </p>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form className="auth-form" onSubmit={handleSubmit}>
           {isRegistering && (
-            <label style={{ display: "block", marginBottom: "16px" }}>
+            <label className="auth-field" htmlFor="name">
               Name
               <input
+                id="name"
+                className="auth-input"
                 required
                 minLength="2"
                 maxLength="50"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 autoComplete="name"
-                style={{ display: "block", width: "100%", marginTop: "6px" }}
               />
             </label>
           )}
 
-          <label style={{ display: "block", marginBottom: "16px" }}>
-            Email
+          <label className="auth-field" htmlFor="email">
+            Email address
             <input
+              id="email"
+              className="auth-input"
               required
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
-              style={{ display: "block", width: "100%", marginTop: "6px" }}
+              aria-describedby={errorMessage ? "auth-error" : undefined}
             />
           </label>
 
-          <label style={{ display: "block", marginBottom: "20px" }}>
+          <label className="auth-field" htmlFor="password">
             Password
             <input
+              id="password"
+              className="auth-input"
               required
               minLength="8"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete={isRegistering ? "new-password" : "current-password"}
-              style={{ display: "block", width: "100%", marginTop: "6px" }}
+              aria-describedby={errorMessage ? "auth-error" : undefined}
             />
           </label>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            style={{
-              width: "100%",
-              padding: "12px",
-              border: "none",
-              borderRadius: "8px",
-              color: "#ffffff",
-              background: "#2563eb",
-              cursor: isSubmitting ? "wait" : "pointer",
-            }}
-          >
+          <button className="auth-button" type="submit" disabled={isSubmitting}>
             {isSubmitting
               ? "Please wait..."
               : isRegistering
@@ -145,18 +120,7 @@ function Auth({ onAuthenticated }) {
           </button>
         </form>
 
-        <button
-          type="button"
-          onClick={switchMode}
-          style={{
-            width: "100%",
-            marginTop: "16px",
-            border: "none",
-            background: "transparent",
-            color: "#2563eb",
-            cursor: "pointer",
-          }}
-        >
+        <button className="auth-mode-button" type="button" onClick={switchMode}>
           {isRegistering
             ? "Already have an account? Log in"
             : "Need an account? Register"}
