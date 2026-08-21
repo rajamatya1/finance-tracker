@@ -1,10 +1,8 @@
 import API from "../services/api";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import SummaryCards from "../components/SummaryCards";
 import TransactionForm from "../components/TransactionForm";
 
-
-/* ================= STYLES ================= */
 const cardStyle = (theme) => ({
   flex: 1,
   padding: "14px",
@@ -62,6 +60,15 @@ const transactionCard = (theme, type) => ({
   alignItems: "center",
 });
 
+const errorBox = (darkMode) => ({
+  marginTop: "16px",
+  padding: "12px",
+  borderRadius: "10px",
+  background: "rgba(239,68,68,0.15)",
+  border: "1px solid rgba(239,68,68,0.45)",
+  color: darkMode ? "#fecaca" : "#b91c1c",
+});
+
 const editBtn = {
   marginRight: "6px",
   padding: "6px 10px",
@@ -81,7 +88,6 @@ const deleteBtn = {
   cursor: "pointer",
 };
 
-/* ================= APP ================= */
 function Home({ user, onLogout }) {
   const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
@@ -89,21 +95,25 @@ function Home({ user, onLogout }) {
   const [category, setCategory] = useState("Food");
   const [type, setType] = useState("expense");
   const [editingId, setEditingId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("theme") === "dark";
   });
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await API.get("/transactions");
-        setTransactions(res.data);
-      } catch (err) {
-        console.log(err);
+        const response = await API.get("/transactions");
+        setTransactions(response.data);
+      } catch {
+        setErrorMessage("Unable to load transactions. Please refresh the page.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchData();
-
   }, []);
 
   useEffect(() => {
@@ -118,59 +128,105 @@ function Home({ user, onLogout }) {
   };
 
   const addTransaction = async () => {
-    if (!title || !amount) return;
+    const normalizedTitle = title.trim();
+    const normalizedCategory = category.trim();
+    const numericAmount = Number(amount);
+
+    if (!normalizedTitle) {
+      setErrorMessage("Please enter a transaction title.");
+      return;
+    }
+
+    if (!Number.isFinite(numericAmount) || numericAmount === 0) {
+      setErrorMessage("Please enter a non-zero amount.");
+      return;
+    }
+
+    if (!normalizedCategory) {
+      setErrorMessage("Please select a category.");
+      return;
+    }
+
+    setErrorMessage("");
 
     const payload = {
-      title,
+      title: normalizedTitle,
       amount:
         type === "expense"
-          ? -Math.abs(Number(amount))
-          : Math.abs(Number(amount)),
-      category,
+          ? -Math.abs(numericAmount)
+          : Math.abs(numericAmount),
+      category: normalizedCategory,
       type,
     };
 
     try {
       if (editingId) {
-        const res = await API.put(`/transactions/${editingId}`, payload);
-        setTransactions((prev) =>
-          prev.map((t) => (t._id === editingId ? res.data : t))
+        const response = await API.put(
+          `/transactions/${editingId}`,
+          payload
         );
+
+        setTransactions((previousTransactions) =>
+          previousTransactions.map((transaction) =>
+            transaction._id === editingId ? response.data : transaction
+          )
+        );
+
         setEditingId(null);
       } else {
-        const res = await API.post("/transactions", payload);
-        setTransactions((prev) => [...prev, res.data]);
+        const response = await API.post("/transactions", payload);
+
+        setTransactions((previousTransactions) => [
+          ...previousTransactions,
+          response.data,
+        ]);
       }
 
       setTitle("");
       setAmount("");
       setCategory("Food");
       setType("expense");
-    } catch (err) {
-      console.log(err);
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Unable to save this transaction. Please try again."
+      );
     }
   };
 
   const deleteTransaction = async (id) => {
-    await API.delete(`/transactions/${id}`);
-    setTransactions((prev) => prev.filter((t) => t._id !== id));
+    setErrorMessage("");
+
+    try {
+      await API.delete(`/transactions/${id}`);
+
+      setTransactions((previousTransactions) =>
+        previousTransactions.filter((transaction) => transaction._id !== id)
+      );
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message ||
+          "Unable to delete this transaction. Please try again."
+      );
+    }
   };
 
-  const editTransaction = (t) => {
-    setEditingId(t._id);
-    setTitle(t.title);
-    setAmount(Math.abs(t.amount));
-    setCategory(t.category);
-    setType(t.type);
+  const editTransaction = (transaction) => {
+    setErrorMessage("");
+    setEditingId(transaction._id);
+    setTitle(transaction.title);
+    setAmount(Math.abs(transaction.amount));
+    setCategory(transaction.category);
+    setType(transaction.type);
   };
 
   const income = transactions
-    .filter((t) => t.type === "income")
-    .reduce((a, b) => a + b.amount, 0);
+    .filter((transaction) => transaction.type === "income")
+    .reduce((total, transaction) => total + transaction.amount, 0);
 
   const expense = transactions
-    .filter((t) => t.type === "expense")
-    .reduce((a, b) => a + b.amount, 0);
+    .filter((transaction) => transaction.type === "expense")
+    .reduce((total, transaction) => total + transaction.amount, 0);
 
   const balance = income + expense;
 
@@ -187,70 +243,85 @@ function Home({ user, onLogout }) {
         }}
       >
         <h2>💰 Finance Tracker</h2>
-        <p style={{ marginBottom: "10px", opacity: 0.75 }}>
-  Signed in as {user.name}
-</p>
 
-<button onClick={onLogout} style={{ marginBottom: "10px" }}>
-  Log out
-</button>
+        <p style={{ marginBottom: "10px", opacity: 0.75 }}>
+          Signed in as {user.name}
+        </p>
+
+        <button onClick={onLogout} style={{ marginBottom: "10px" }}>
+          Log out
+        </button>
 
         <button onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "☀️ Light" : "🌙 Dark"}
         </button>
 
-        {/* CARDS */}
         <SummaryCards
-  theme={theme}
-  balance={balance}
-  income={income}
-  expense={expense}
-  cardStyle={cardStyle}
-/>
+          theme={theme}
+          balance={balance}
+          income={income}
+          expense={expense}
+          cardStyle={cardStyle}
+        />
 
-<TransactionForm
-  theme={theme}
-  inputStyle={inputStyle}
-  title={title}
-  setTitle={setTitle}
-  amount={amount}
-  setAmount={setAmount}
-  category={category}
-  setCategory={setCategory}
-  type={type}
-  setType={setType}
-  addTransaction={addTransaction}
-  editingId={editingId}
-  setEditingId={setEditingId}
-  primaryBtn={primaryBtn}
-  cancelBtn={cancelBtn}
-/>
+        <TransactionForm
+          theme={theme}
+          inputStyle={inputStyle}
+          title={title}
+          setTitle={setTitle}
+          amount={amount}
+          setAmount={setAmount}
+          category={category}
+          setCategory={setCategory}
+          type={type}
+          setType={setType}
+          addTransaction={addTransaction}
+          editingId={editingId}
+          setEditingId={setEditingId}
+          primaryBtn={primaryBtn}
+          cancelBtn={cancelBtn}
+        />
 
+        {errorMessage && (
+          <p role="alert" style={errorBox(darkMode)}>
+            {errorMessage}
+          </p>
+        )}
 
-        {/* LIST */}
         <div style={{ marginTop: "20px" }}>
-          {transactions.map((t) => (
-            <div
-              key={t._id}
-              style={transactionCard(theme, t.type)}
-            >
-              <div>
-                <b>{t.title}</b>
-                <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                  {t.category} • ${Math.abs(t.amount)}
+          {isLoading ? (
+            <p>Loading your transactions...</p>
+          ) : (
+            transactions.map((transaction) => (
+              <div
+                key={transaction._id}
+                style={transactionCard(theme, transaction.type)}
+              >
+                <div>
+                  <b>{transaction.title}</b>
+                  <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                    {transaction.category} • ${Math.abs(transaction.amount)}
+                  </div>
+                </div>
+
+                <div>
+                  <button
+                    style={editBtn}
+                    onClick={() => editTransaction(transaction)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    style={deleteBtn}
+                    onClick={() => deleteTransaction(transaction._id)}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-
-              <div>
-                <button style={editBtn} onClick={() => editTransaction(t)}>
-                  Edit
-                </button>
-                <button style={deleteBtn} onClick={() => deleteTransaction(t._id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>
