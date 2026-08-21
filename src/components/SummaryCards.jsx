@@ -1,6 +1,13 @@
 function SummaryCards({ theme, balance, income, expense, cardStyle }) {
     return (
-      <div style={{ display: "flex", gap: "10px", marginTop: "15px" }}>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "10px",
+          marginTop: "15px",
+        }}
+      >
         <div style={cardStyle(theme)}>
           <h4>Balance</h4>
           <h3>${balance.toFixed(2)}</h3>

@@ -30,7 +30,7 @@ function formatMonthLabel(monthKey) {
 }
 
 const cardStyle = (theme) => ({
-  flex: 1,
+  flex: "1 1 160px",
   padding: "14px",
   borderRadius: "14px",
   background: theme.card,
@@ -98,6 +98,8 @@ const transactionCard = (theme, type) => ({
       : "rgba(239,68,68,0.08)",
   border: "1px solid rgba(0,0,0,0.05)",
   alignItems: "center",
+  flexWrap: "wrap",
+  gap: "12px",
 });
 
 const errorBox = (darkMode) => ({
@@ -110,13 +112,18 @@ const errorBox = (darkMode) => ({
 });
 
 const editBtn = {
-  marginRight: "6px",
   padding: "6px 10px",
   border: "none",
   borderRadius: "8px",
   background: "#3b82f6",
   color: "white",
   cursor: "pointer",
+};
+
+const transactionActions = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "6px",
 };
 
 const deleteBtn = {
@@ -348,15 +355,22 @@ function Home({ user, onLogout }) {
     });
 
   return (
-    <div style={{ background: theme.bg, minHeight: "100vh", padding: "30px" }}>
+    <div
+      style={{
+        background: theme.bg,
+        minHeight: "100vh",
+        padding: "clamp(12px, 4vw, 30px)",
+      }}
+    >
       <div
         style={{
           maxWidth: "600px",
           margin: "auto",
           background: theme.card,
-          padding: "20px",
+          padding: "clamp(16px, 4vw, 24px)",
           borderRadius: "16px",
           color: theme.text,
+          boxSizing: "border-box",
         }}
       >
         <h2>💰 Finance Tracker</h2>
@@ -484,7 +498,7 @@ function Home({ user, onLogout }) {
                   </div>
                 </div>
 
-                <div>
+                <div style={transactionActions}>
                   <button
                     style={editBtn}
                     onClick={() => editTransaction(transaction)}
